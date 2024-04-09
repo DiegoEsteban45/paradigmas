@@ -40,10 +40,10 @@
          (my-list-ref (cdr L1)(- N 1)))
       #f))
 
-(define (sumar-elementos L1) ;suma los elemtos de una lista recursion natural
+(define (sumar-elementos-rn L1) ;suma los elemtos de una lista recursion natural
   (if (null? L1) 
       0
-      (+ (car L1) (sumar-elementos (cdr L1)))))
+      (+ (car L1) (sumar-elementos-rn (cdr L1)))))
 
 (define (sumar-elementos-rc L1) ;suma los elemtos de una lista recursion de cola
   (define (sum suma L1)
@@ -51,6 +51,18 @@
         suma
         (sum (+ suma (car L1)) (cdr L1))))
   (sum 0 L1))
+
+(define (promedio listax);calcula el promedio de una lista
+  (/(sumar-elementos-rc listax)(largo-lista listax)))
+
+(define (media . parametros) ;el punto se utiliza para aplicar un indeterminado numero de parametros que seran tratados como lista
+  (/(apply + parametros)(length parametros)))
+
+(define (suma-o-resta boo pam1 pam2)
+  ((if boo + -) pam1 pam2))
+
+(define (suma-o-resta2 v-f pam1 pam2)
+  (if v-f (+ pam1 pam2 )(- pam1 pam2)))
 
 ;funciones a considerar
 
@@ -66,7 +78,7 @@
 
 (define (quintoelemento lista) (fifth lista))
 
-(define (decimoelemento lista) (tenth lista))
+(define (decimoelemento lista)(tenth lista))
 
 (define (ultimo-elemto lista)(last lista))
 
@@ -80,14 +92,19 @@
 
 (define (aplicar-funcion F L1)(map F L1)) ; aplica la funcion F a todos los elementos de la lista (L1) ojo no modifica L1 solo L1 no es variable
 
+(define (es-vacia? lista)(empty? lista));devuelve un boleano dependiendo de si la lista esta vacia, verdare si lo esta y falso si no
+
 ;(andmap funcBOOL nlistas) solo se aplica a funciones que usen booleanos y devolvera un boleano dependiendo de si la condicion que trate la funcion es verdadero a todos los
+
 ;elementos de la lista, el caso contrario devolvera un falso
 
 ;(ormap funcBOOL nlistas) lo msimo pero algun elemento debe cumplir la condicion
 
 ;(filter funcBOOL nlistas) filtra los elementos dependiendo de la condicion dada por funcBOOL
 
-(define (es-vacia? lista)(empty? lista));devuelve un boleano dependiendo de si la lista esta vacia, verdare si lo esta y falso si no
+;(apply funcion lista) toma los parametros de una funcion por separados y aplica la funcion 
+
+
 
 
 

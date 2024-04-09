@@ -1,0 +1,16 @@
+#lang racket
+
+;clase 5 condicionales
+
+
+(define (son-iguales? X Y)
+  (equal? X Y))
+
+;(and "parametros" ) -> si son todos verdaderos, devueleve #t si no, #f
+;(or  "parametros" ) -> si alguno es verdaderos, devueleve #t si no, #f
+; (not "parametros") -> niega los que sea
+
+
+(define (que-soy x)
+  (cond [(string? x) "soy un strign"]
+        []))
