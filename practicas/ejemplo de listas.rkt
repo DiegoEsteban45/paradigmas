@@ -102,14 +102,27 @@
 
 ;(filter funcBOOL nlistas) filtra los elementos dependiendo de la condicion dada por funcBOOL
 
-;(apply funcion lista) toma los parametros de una funcion por separados y aplica la funcion 
+;(apply funcion lista) toma los parametros de una funcion por separados y aplica la funcion
+
+;(procedure? func)    Verifica si func es una función
+
+;(defined? func)       Verifica si func está definida
 
 
+(define (esta? element L1)
+  (if(member element L1) "esta" "no esta"))
 
+(define (estaa? element L1)
+  (if(member element L1) #t #f))
 
-
-
-
+(define (get-ids-station2 . sections-line) ; dominio secciones-que componen una linea, recorrido ids de las estaciones que componen la linea. 
+  (define (get-ids-station-envolotorio sections-line)
+  (if (< 1 (length sections-line)) 
+      (cons (get-id-station (get-section-point1 (first sections-line)))
+            (get-ids-station-envolotorio (cdr sections-line)))
+      (cons (first (get-section-point1 (first sections-line)))
+            (cons (get-id-station (get-section-point2 (first sections-line))) '()))))
+  (get-ids-station-envolotorio sections-line))
 
 
 
