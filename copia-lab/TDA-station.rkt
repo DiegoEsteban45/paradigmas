@@ -100,39 +100,46 @@
 (define (get-section-point2 section)
   (second section))
 
+(define(get-distance-section section)
+  (third section))
+
 ;TDA line (3)
 
-(define (get-ids-station sections-line)
-  (if (< 1 (length sections-line)) 
+;CONSTRUCTOR(3)
+
+(define (get-ids-station sections-line) ;dominio: sections-line(list of sections associated with a line)
+  (if (< 1 (length sections-line))      ;reocorrido: list-ids-station(list of station IDs belonging to a line) 
       (cons (get-id-station (get-section-point1 (first sections-line)))
             (get-ids-station (cdr sections-line)))
       (cons (first (get-section-point1 (first sections-line)))
             (cons (get-id-station (get-section-point2 (first sections-line))) '())
             )))
 
-(define (in-list? element L1) ; si el elemento esta verdadero, si no, falso
-  (if(member element L1) #t #f))
+(define (id-in-list? id list-ids) ; dominio: id(station id) x list-ids(station ids)
+  (if(member id list-ids) #t #f)) ; recorrido: boolean
 
-(define (check-ids-line-consistency list-ids) ;chekea que las estaciones no se repitan verdadero si no se repiten, falso si se repiten
+(define (check-ids-line-consistency list-ids) ; list-ids(station ids)
   (define (check-ids id list-ids)
   (if(empty? list-ids)
      #t
-     (if(in-list? id list-ids)
+     (if(id-in-list? id list-ids)
         #f
         (check-ids (car list-ids) (cdr list-ids)))))
   (check-ids (car list-ids)(cdr list-ids)))
 
-(define (Check-consistency sections) ; checkea si la linea esta bien constituida en cuanto a sus secciones solo para lineas con doble terminal 
-            (if (<= (length sections) 2)
-                (if(equal? (first(second sections)) (second (first sections)))
+(define (Check-consistency sections-line)     ;dominio: sections-line(list of sections associated with a line)  
+            (if (<= (length sections-line) 2) ;recorrido: boolean
+                (if(equal? (first(second sections-line)) (second (first sections-line)))
                    #t #f)            
-                (if(equal? (first(second sections)) (second(first sections)))
-                   (Check-consistency (cdr sections))
+                (if(equal? (first(second sections-line)) (second(first sections-line)))
+                   (Check-consistency (cdr sections-line))
                    #f)))
 
-(define (line id-line name-line rail-type . sections)
-  (if (not (= (length sections) 0))
-          (if (and (equal? (get-type-station(second (last sections))) t) (equal? (get-type-station(first (first sections))) t) (not(equal?(second (last sections))(first (first sections)))))
+(define (line id-line name-line rail-type . sections) ; dominio: id-line (int) x name-line (string) x rail-type(string) x sections(a minimum of two sections)
+  (if (not (= (length sections) 0))                   ; recorrido: line
+          (if (and (equal? (get-type-station(second (last sections))) t)
+                   (equal? (get-type-station(first (first sections))) t)
+                   (not(equal?(second (last sections))(first (first sections)))))
                (if (Check-consistency sections)
                    (if (check-ids-line-consistency (get-ids-station sections))
                        (list id-line name-line rail-type sections)
@@ -146,6 +153,23 @@
                        (list -1 "undefined-line" "undefined-rail-type" undefined-section))
                    (list -1 "undefined-line" "undefined-rail-type" undefined-section)))
           (list -1 "undefined-line" "undefined-rail-type" undefined-section)))
+
+;PERTENENCIA
+
+
+
+
+;SELECTORES
+
+
+
+;MODIFICADORES OTRAS-FUNCIONES
+
+(define line-length line
+  (apply + (map get-distance-section (last line))))
+
+
+
 
 
           
