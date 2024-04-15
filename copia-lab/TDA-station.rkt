@@ -168,23 +168,26 @@
 
 ;PERTENENCIA
 
-(define (line? line) 
-  (if (and (not (= (length (last line)) 0))(check-id-n-rt-line (first line) (second line) (third line)))                          
-          (if (and (equal? (get-type-station(second (last (last line)))) t)
-                   (equal? (get-type-station(first (first (last line)))) t)
-                   (not(equal?(second (last (last line)))(first (first (last line))))))
-               (if (check-consistency (last line))
-                   (if (check-ids-line-consistency (get-ids-station (last line)))
-                       #t #f)
-                   #f)
-               (if (equal? (second (last (last line))) (first (first (last line)))) ;circular 
-                   (if (check-consistency (last line))
-                       (if(check-ids-line-consistency (cdr(get-ids-station (last line))))
-                          #t
-                          #f)
-                       #f)
-                   #f))
-          #f))
+(define (line? line)
+  (if(= 4 (length line))
+     (if (and (not (= (length (last line)) 0))(check-id-n-rt-line (first line) (second line) (third line)))                          
+         (if (and (equal? (get-type-station(second (last (last line)))) t)
+                  (equal? (get-type-station(first (first (last line)))) t)
+                  (not(equal?(second (last (last line)))(first (first (last line))))))
+             (if (check-consistency (last line))
+                 (if (check-ids-line-consistency (get-ids-station (last line)))
+                     #t #f)
+                 #f)
+             (if (equal? (second (last (last line))) (first (first (last line)))) ;circular 
+                 (if (check-consistency (last line))
+                     (if(check-ids-line-consistency (cdr(get-ids-station (last line))))
+                        #t
+                        #f)
+                     #f)
+                 #f))
+         #f)
+     #f))
+  
 
 (define (check-circularity-line line)
   (if (line? line)
@@ -224,7 +227,7 @@
                       (get-lenght (+ 1 index-s1) (- index-s2 1) sections (+ dis (get-distance-section (list-ref sections index-s1))))))
 
 (define (line-section-length station1 station2 line)
-  (if (not(empty? (last line)))
+  (if (not(check-circularity-line line))
       (if (< (get-order-stations station1(last line)) (get-order-stations station2 (last line)))            ; quiere decir que la station 1 esta antes        
           (if (<= 0 (get-order-stations station1 (last line)))
               (get-lenght (get-order-stations station1 (last line))
