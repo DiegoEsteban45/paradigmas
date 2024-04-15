@@ -211,7 +211,7 @@
      0
      (+ (get-cost-section(first sections)) (cost (cdr sections)))))
   (cost (last line)))
-
+;-------------------------------------largo----------------------------------------------------
 (define (get-order-stations s1 sections)
     ( -
       (length
@@ -222,28 +222,65 @@
   ))
 
 (define (get-lenght index-s1 index-s2 sections dis)
-                  (if (= 0 index-s2)
-                      dis
-                      (get-lenght (+ 1 index-s1) (- index-s2 1) sections (+ dis (get-distance-section (list-ref sections index-s1))))))
+  (if (= 0 index-s2)
+      dis
+      (get-lenght (+ 1 index-s1) (- index-s2 1) sections (+ dis (get-distance-section (list-ref sections index-s1))))))
+
+(define(get-lenght-line station1 station2 line-sections)
+(if (< (get-order-stations station1 line-sections)(get-order-stations station2 line-sections))            ; quiere decir que la station 1 esta antes        
+    (if (<= 0 (get-order-stations station1 line-sections))
+        (get-lenght (get-order-stations station1 line-sections)
+                    (- (get-order-stations station2 line-sections) (get-order-stations station1 line-sections))
+                    line-sections
+                    0)
+        0)
+    (if (<= 0 (get-order-stations station2 line-sections))
+        (get-lenght  (get-order-stations station2 line-sections)
+                     (- (get-order-stations station1 line-sections) (get-order-stations station2 line-sections))
+                     line-sections
+                     0)
+        0)))
+
+(define (swap-stations sections)
+  (section (second sections) (first sections) (third sections) (fourth sections)))
 
 (define (line-section-length station1 station2 line)
   (if (not(check-circularity-line line))
-      (if (< (get-order-stations station1(last line)) (get-order-stations station2 (last line)))            ; quiere decir que la station 1 esta antes        
-          (if (<= 0 (get-order-stations station1 (last line)))
-              (get-lenght (get-order-stations station1 (last line))
-                          (- (get-order-stations station2 (last line)) (get-order-stations station1 (last line)))
-                          (last line)
-                          0)
+      (get-lenght-line station1 station2 (last line))
+      (if (>= (get-lenght-line station1 station2 (last line)) (get-lenght-line station1 station2 (reverse (map swap-stations (last line)))))
+          (get-lenght-line station1 station2 (reverse (map swap-stations (last line))))
+          (get-lenght-line station1 station2 (last line)))))
+;-------------------------------------cost--------------------------------------------------
+(define (get-cost-sections index-s1 index-s2 sections cost)
+  (if (= 0 index-s2)
+      cost
+      (get-cost-sections (+ 1 index-s1) (- index-s2 1) sections (+ cost (fourth (list-ref sections index-s1))))))
+
+(define(get-cost station1 station2 line-sections)
+  (if (< (get-order-stations station1 line-sections)(get-order-stations station2 line-sections))            ; quiere decir que la station 1 esta antes        
+      (if (<= 0 (get-order-stations station1 line-sections))
+        (get-cost-sections (get-order-stations station1 line-sections)
+                    (- (get-order-stations station2 line-sections) (get-order-stations station1 line-sections))
+                    line-sections
                     0)
-          (if (<= 0 (get-order-stations station2 (last line)))
-              (get-lenght  (get-order-stations station2 (last line))
-                          (- (get-order-stations station1 (last line)) (get-order-stations station2 (last line)))
-                          (last line)
-                          0)
-                    0))
-      0))
-      
-            
+        0)
+    (if (<= 0 (get-order-stations station2 line-sections))
+        (get-cost-sections  (get-order-stations station2 line-sections)
+                     (- (get-order-stations station1 line-sections) (get-order-stations station2 line-sections))
+                     line-sections
+                     0)
+        0)))
+
+(define (get-cost-line station1 station2 line)
+  (if (not(check-circularity-line line))
+      (get-cost station1 station2 (last line))
+      (if(>= (get-cost station1 station2 (last line)) (get-cost station1 station2 (reverse (map swap-stations (last line)))))
+         (get-cost station1 station2 (reverse (map swap-stations (last line))))
+          (get-cost station1 station2 (last line)))))
+
+          
+          
+          
             
                 
                 

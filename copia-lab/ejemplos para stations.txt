@@ -21,3 +21,10 @@ line circular
 (section (station 04 "mfourth" c 23) (station 05 "mfifth" r 23) 500 40)
 (section (station 05 "mfifth" r 23) (station 06 "msixth" r 23) 600 45)
 (section (station 06 "msixth" r 23) (station 01 "mstart" t 23) 700 50)
+
+(line-section-length "mstart" "msixth"(line 01 "linea1" "noc" (section (station 01 "mstart" t 23) (station 02 "msecond" r 23) 200 25)
+(section (station 02 "msecond" r 23) (station 03 "mthird" m 23) 300 30)
+(section (station 03 "mthird" m 23) (station 04 "mfourth" c 23) 400 35)
+(section (station 04 "mfourth" c 23) (station 05 "mfifth" r 23) 500 40)
+(section (station 05 "mfifth" r 23) (station 06 "msixth" r 23) 600 45)
+(section (station 06 "msixth" r 23) (station 01 "mstart" t 23) 700 50)))
