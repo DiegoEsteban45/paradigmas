@@ -186,6 +186,12 @@
                    #f))
           #f))
 
+(define (check-circularity-line line)
+  (if (line? line)
+      (if(equal? (second(last(last line))) (first(first(last line))))
+         #t #f)
+      #f))
+
 ;SELECTORES
 
 
@@ -213,7 +219,7 @@
   ))
 
 (define (get-lenght index-s1 index-s2 sections dis)
-                  (if (>= 1 index-s2)
+                  (if (= 0 index-s2)
                       dis
                       (get-lenght (+ 1 index-s1) (- index-s2 1) sections (+ dis (get-distance-section (list-ref sections index-s1))))))
 
@@ -221,16 +227,16 @@
   (if (not(empty? (last line)))
       (if (< (get-order-stations station1(last line)) (get-order-stations station2 (last line)))            ; quiere decir que la station 1 esta antes        
           (if (<= 0 (get-order-stations station1 (last line)))
-              (get-lenght (+ 1 (get-order-stations station1 (last line)))
+              (get-lenght (get-order-stations station1 (last line))
                           (- (get-order-stations station2 (last line)) (get-order-stations station1 (last line)))
                           (last line)
-                          (get-distance-section (list-ref (last line) (get-order-stations station1(last line)))))
+                          0)
                     0)
           (if (<= 0 (get-order-stations station2 (last line)))
-              (get-lenght (+ 1 (get-order-stations station2 (last line)))
+              (get-lenght  (get-order-stations station2 (last line))
                           (- (get-order-stations station1 (last line)) (get-order-stations station2 (last line)))
                           (last line)
-                          (get-distance-section (list-ref (last line) (get-order-stations station2 (last line)))))
+                          0)
                     0))
       0))
       
