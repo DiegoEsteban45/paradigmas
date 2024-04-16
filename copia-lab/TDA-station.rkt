@@ -86,7 +86,7 @@
 
   ;PERTENENCIA (2)
 
-  (define (is-a-section? Section)
+  (define (section? Section)
    (if(and (= 4 (length Section))
       (not (equal? (section (first Section) (second Section) (third Section) (fourth Section)) undefined-section)))
      #t
@@ -105,6 +105,11 @@
 
 (define(get-cost-section section)
   (fourth section))
+
+;OTRAS FUNCIONES
+
+(define (swap-stations sections)
+  (section (second sections) (first sections) (third sections) (fourth sections)))
 
 
 ;TDA line (3)
@@ -131,14 +136,19 @@
         (check-ids (car list-ids) (cdr list-ids)))))
   (check-ids (car list-ids)(cdr list-ids)))
 
-(define (check-consistency sections-line)           ;dominio: sections-line(list of sections associated with a line) recorrido: boolean
-  (if (<= (length sections-line) 2)                         
-      (if(equal? (first(second sections-line)) (second (first sections-line)))
-         #t #f)            
-      (if(and (equal? (first(second sections-line))(second(first sections-line)))(not(equal? (fourth (first (second sections-line))) t)))
-         (check-consistency (cdr sections-line))
-         #f)))
-
+(define (check-consistency sections-line);dominio: sections-line(list of sections associated with a line) recorrido: boolean
+  (if (section? (car sections-line))
+      (if (not(<= (length sections-line) 1))
+          (if (= (length sections-line) 2)                         
+              (if(equal? (first(second sections-line)) (second (first sections-line))) 
+                 #t #f)            
+              (if(and (equal? (first(second sections-line))(second(first sections-line)))(not(equal? (fourth (first (second sections-line))) t)))
+                 (check-consistency (cdr sections-line))
+                 #f))
+          (if(= (length sections-line) 0)
+             #f #t))
+  #f))
+  
 (define (check-id-n-rt-line id-line name-line rail-type)
   (if(and
       (number? id-line)
@@ -146,6 +156,8 @@
       (string? name-line)
       (string? rail-type))
   #t #f))
+
+(define undefined-line (list -1 "undefined-line" "undefined-rail-type" undefined-section))
 
 (define (line id-line name-line rail-type . sections) ; dominio: id-line (int) x name-line (string) x rail-type(string) x sections(a minimum of two sections)
   (if (and (not (= (length sections) 0))(check-id-n-rt-line id-line name-line rail-type))                           ; recorrido: line
@@ -155,16 +167,16 @@
                (if (check-consistency sections)
                    (if (check-ids-line-consistency (get-ids-station sections))
                        (list id-line name-line rail-type sections)
-                       (list -1 "undefined-line" "undefined-rail-type" undefined-section))
-                   (list -1 "undefined-line" "undefined-rail-type" undefined-section))
-               (if (equal? (second (last sections)) (first (first sections))) ;circular 
+                       undefined-line)
+                   undefined-line)
+               (if (and (equal? (second (last sections)) (first (first sections))) (and (not (equal? (get-type-station(second (last sections))) t )) (not (equal? (get-type-station(first (first sections))) t ))))  ;circular 
                    (if (check-consistency sections)
                        (if(check-ids-line-consistency (cdr(get-ids-station sections)))
                           (list id-line name-line rail-type sections)
-                          (list -1 "undefined-line" "undefined-rail-type" undefined-section))
-                       (list -1 "undefined-line" "undefined-rail-type" undefined-section))
-                   (list -1 "undefined-line" "undefined-rail-type" undefined-section)))
-          (list -1 "undefined-line" "undefined-rail-type" undefined-section)))
+                          undefined-line)
+                       undefined-line)
+                   undefined-line))
+          undefined-line))
 
 ;PERTENENCIA
 
@@ -200,18 +212,6 @@
 
 ;MODIFICADORES OTRAS-FUNCIONES
 
-(define (line-length line)
-  (if(not(= -1(first line)))
-     (apply + (map get-distance-section (last line)))
-     -1))
-
-(define(line-cost line)
-  (define(cost sections)
-    (if(empty? sections)
-     0
-     (+ (get-cost-section(first sections)) (cost (cdr sections)))))
-  (cost (last line)))
-;-------------------------------------largo----------------------------------------------------
 (define (get-order-stations s1 sections)
     ( -
       (length
@@ -221,112 +221,95 @@
      (cons (get-name-station(get-section-point1 (first sections))) (apply list (map get-name-station(map get-section-point2 sections))))))                
   ))
 
-(define (get-lenght index-s1 index-s2 sections dis)
+;---------------------------------------------------------------------largo-------------------------------------------------------------------------------------------------------
+
+(define (line-length line)
+  (if(not(= -1(first line)))
+     (apply + (map get-distance-section (last line)))
+     -1))
+
+(define (line-section-length station1 station2 line)
+  (define (get-lenght index-s1 index-s2 sections dis)
   (if (= 0 index-s2)
       dis
       (get-lenght (+ 1 index-s1) (- index-s2 1) sections (+ dis (get-distance-section (list-ref sections index-s1))))))
-
-(define(get-lenght-line station1 station2 line-sections)
-(if (< (get-order-stations station1 line-sections)(get-order-stations station2 line-sections))            ; quiere decir que la station 1 esta antes        
-    (if (<= 0 (get-order-stations station1 line-sections))
-        (get-lenght (get-order-stations station1 line-sections)
-                    (- (get-order-stations station2 line-sections) (get-order-stations station1 line-sections))
-                    line-sections
-                    0)
-        0)
-    (if (<= 0 (get-order-stations station2 line-sections))
-        (get-lenght  (get-order-stations station2 line-sections)
-                     (- (get-order-stations station1 line-sections) (get-order-stations station2 line-sections))
-                     line-sections
-                     0)
-        0)))
-
-(define (swap-stations sections)
-  (section (second sections) (first sections) (third sections) (fourth sections)))
-
-(define (line-section-length station1 station2 line)
-  (if (not(check-circularity-line line))
-      (get-lenght-line station1 station2 (last line))
-      (if (>= (get-lenght-line station1 station2 (last line)) (get-lenght-line station1 station2 (reverse (map swap-stations (last line)))))
-          (get-lenght-line station1 station2 (reverse (map swap-stations (last line))))
-          (get-lenght-line station1 station2 (last line)))))
-;-------------------------------------cost--------------------------------------------------
-(define (get-cost-sections index-s1 index-s2 sections cost)
-  (if (= 0 index-s2)
-      cost
-      (get-cost-sections (+ 1 index-s1) (- index-s2 1) sections (+ cost (fourth (list-ref sections index-s1))))))
-
-(define(get-cost station1 station2 line-sections)
-  (if (< (get-order-stations station1 line-sections)(get-order-stations station2 line-sections))            ; quiere decir que la station 1 esta antes        
-      (if (<= 0 (get-order-stations station1 line-sections))
-        (get-cost-sections (get-order-stations station1 line-sections)
-                    (- (get-order-stations station2 line-sections) (get-order-stations station1 line-sections))
-                    line-sections
-                    0)
-        0)
-    (if (<= 0 (get-order-stations station2 line-sections))
-        (get-cost-sections  (get-order-stations station2 line-sections)
-                     (- (get-order-stations station1 line-sections) (get-order-stations station2 line-sections))
-                     line-sections
-                     0)
-        0)))
-
-(define (get-cost-line station1 station2 line)
-  (if (not(check-circularity-line line))
-      (get-cost station1 station2 (last line))
-      (if(>= (get-cost station1 station2 (last line)) (get-cost station1 station2 (reverse (map swap-stations (last line)))))
-         (get-cost station1 station2 (reverse (map swap-stations (last line))))
-          (get-cost station1 station2 (last line)))))
-
-          
-          
-          
-            
-                
-                
-                
-                
-                    
-                
-          
   
+  (define(calculate-length station1 station2 line-sections)
+    (if (< (get-order-stations station1 line-sections)(get-order-stations station2 line-sections))               
+        (if (<= 0 (get-order-stations station1 line-sections))
+            (get-lenght (get-order-stations station1 line-sections)
+                        (- (get-order-stations station2 line-sections) (get-order-stations station1 line-sections))
+                        line-sections
+                        0)
+            0)
+        (if (<= 0 (get-order-stations station2 line-sections))
+            (get-lenght  (get-order-stations station2 line-sections)
+                         (- (get-order-stations station1 line-sections) (get-order-stations station2 line-sections))
+                         line-sections
+                         0)
+            0)))
+  (if (line? line) 
+      (calculate-length station1 station2 (last line))
+      #f)) 
+;-------------------------------------------------------------------------cost----------------------------------------------------------------------------------------------
+(define(line-cost line)
+  (define(cost sections)
+    (if(empty? sections)
+     0
+     (+ (get-cost-section(first sections)) (cost (cdr sections)))))
+  (cost (last line)))
 
+(define (line-section-cost station1 station2 line)
+  (define (calculate-cost index-s1 index-s2 sections cost)
+    (if (= 0 index-s2)
+        cost
+        (calculate-cost (+ 1 index-s1) (- index-s2 1) sections (+ cost (get-cost-section (list-ref sections index-s1))))))
+  
+  (define (process-cost station1 station2 line-sections)
+    (if (< (get-order-stations station1 line-sections)(get-order-stations station2 line-sections))               
+        (if (<= 0 (get-order-stations station1 line-sections))
+            (calculate-cost (get-order-stations station1 line-sections)
+                            (- (get-order-stations station2 line-sections) (get-order-stations station1 line-sections))
+                            line-sections
+                            0)
+            0)
+        (if (<= 0 (get-order-stations station2 line-sections))
+            (calculate-cost  (get-order-stations station2 line-sections)
+                             (- (get-order-stations station1 line-sections) (get-order-stations station2 line-sections))
+                             line-sections
+                             0)
+            0)))
+  (if (line? line)
+      (process-cost station1 station2 (last line))
+      #f))
+;--------------------------------------------------------------------------agregar section------------------------------------------------------------------------------------------
 
+#|
+(define (line-add-section line section)
+  (define (equal-sections? section sections) ; verificamos si la section ya existe
+    (if (empty? sections)
+        #t
+    (if(not(or
+        (and (stations-equal? (get-point1-section(section)) (get-poitn1-section(car (sections)))); comparamos si las estaciones inciales de un tramo son iguales 
+             (stations-equla? (get-point2-section(section)) (get-poitn2-section(car (sections))))) ;comparamos si las estaciones finales de un tramo son iguales 
+        (and (stations-equal? (get-point1-section(section)) (get-poitn1-section (swap-stations(car (sections)))))
+             (stations-equal? (get-point1-section(section)) (get-poitn2-section (swap-stations(car (sections))))))))
+       #f)
+    (equal-sections? section (cdr sections))))
 
+  (define (make))
 
-
-
-
-
-
-          
-          
-               
-                   
-                   
-                       
-                          
-                   
-               
-                    
-               
-               
-          
-          
-           
-     
+  
+                                      
+  (if (and (line? line) (section? section))
+      (if (not(equal-sections? section (last(line))))
+          (if (and (equal? (get-point2-section section) (get-point1-section (car (last line)))) (equal? (get-type (get-point1-section section) t)))
+              
+              |#
+            
           
       
-
-;pruebitas
-;(define (line id-line name-line rail-type . sections)
-;  (list id-line name-line rail-type (first(second sections))(second(first sections))))
-
-
-;(section (station 01 "musach" r 23 ) (station 02 "mschile" r 23 ) 455 23)
-;(section (station 02 "mschile" r 23 ) (station 03 "mlol" r 23 ) 455 23)
-
-
+     
 
 
 
