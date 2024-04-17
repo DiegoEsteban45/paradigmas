@@ -115,7 +115,40 @@
 ;TDA line (3)
 
 ;CONSTRUCTOR(3)
-
+(define undefined-line (list -1 "undefined-line" "undefined-rail-type" undefined-section))
+;------------------------------------------------------------------------------ordenar-los-tramos-----------------------------------------------------------------------------------------------------------------------------
+(define (sort-sections sections)
+  
+  (define (check-start-terminal section) 
+    (equal? (get-type-station (get-section-point1 section)) t ))
+  
+  (define (check-finish-terminal section)
+    (equal? (get-type-station (get-section-point2 section)) t ))
+  
+  (define (get-nex-section section nex-section )
+    (equal?(get-section-point2 section)(get-section-point1 nex-section)))
+  
+  (define (get-sort-sections sections first-section)
+  (with-handlers ([exn:fail? (lambda (exn) (cons undefined-section null))]) ; Si ocurre un error
+    (if (= 1 (length sections))
+        (cons (car sections) null)
+        (cons first-section (get-sort-sections (remove first-section sections) (car (filter (lambda (nex-section)(get-nex-section first-section nex-section )) sections)))))))
+  
+  (define (check-start-circular section-start section-end)
+    (equal? (get-section-point1 section-start) (get-section-point2 section-end)))
+  
+  (define (search-start-circular sections) ;me busca la primera seccion en ian linea circular
+    (with-handlers ([exn:fail? (lambda (exn) undefined-section null)])
+    (if (empty? sections)
+        undefined-section
+        (if(empty? (filter(lambda (section-end)(check-start-circular (car sections) section-end) sections)))
+           (search-start-circular (cdr sections))
+           (car (filter(lambda (section-end)(check-start-circular (car sections) section-end) sections)))))))
+  
+  (if (and (= 1 (length( filter check-start-terminal sections))) (= 1 (length( filter check-finish-terminal sections)))) ;vemos si existe un unico tramo con una estacion inicical "t" y final "t"
+      (get-sort-sections sections (car ( filter check-start-terminal sections))) ;retorno las secciones ordenadas de una linea t-t
+      (get-sort-sections sections (search-start-circular sections))))               ;retorno las secciones oredenadas de una linea circular
+;------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 (define (get-ids-station sections-line)     ;dominio: sections-line(list of sections associated with a line)
   (if (< 1 (length sections-line))              ;reocorrido: list-ids-station(list of station IDs belonging to a line) 
       (cons (get-id-station (get-section-point1 (first sections-line)))
@@ -129,11 +162,13 @@
 
 (define (check-ids-line-consistency list-ids) ; list-ids(station ids)
   (define (check-ids id list-ids)
-  (if(empty? list-ids)
-     #t
-     (if(id-in-list? id list-ids)
-        #f
-        (check-ids (car list-ids) (cdr list-ids)))))
+    (if (not(> 0 id))
+        (if(empty? list-ids)
+           #t
+           (if (and (id-in-list? id list-ids)(> 0 id)) 
+               #f
+               (check-ids (car list-ids) (cdr list-ids))))
+        #f))
   (check-ids (car list-ids)(cdr list-ids)))
 
 (define (check-consistency sections-line);dominio: sections-line(list of sections associated with a line) recorrido: boolean
@@ -157,26 +192,23 @@
       (string? rail-type))
   #t #f))
 
-(define undefined-line (list -1 "undefined-line" "undefined-rail-type" undefined-section))
 
-(define (line id-line name-line rail-type . sections) ; dominio: id-line (int) x name-line (string) x rail-type(string) x sections(a minimum of two sections)
-  (if (and (not (= (length sections) 0))(check-id-n-rt-line id-line name-line rail-type))                           ; recorrido: line
-          (if (and (equal? (get-type-station(second (last sections))) t)
-                   (equal? (get-type-station(first (first sections))) t)
-                   (not(equal?(second (last sections))(first (first sections)))))
-               (if (check-consistency sections)
-                   (if (check-ids-line-consistency (get-ids-station sections))
-                       (list id-line name-line rail-type sections)
-                       undefined-line)
-                   undefined-line)
-               (if (and (equal? (second (last sections)) (first (first sections))) (and (not (equal? (get-type-station(second (last sections))) t )) (not (equal? (get-type-station(first (first sections))) t ))))  ;circular 
-                   (if (check-consistency sections)
-                       (if(check-ids-line-consistency (cdr(get-ids-station sections)))
-                          (list id-line name-line rail-type sections)
-                          undefined-line)
-                       undefined-line)
-                   undefined-line))
-          undefined-line))
+
+(define (line id-line name-line rail-type . sections) 
+  (let ([sorted-sections (sort-sections sections)])                               ; Almacena el resultado de sort-sections en sorted-sections
+    (if  (and (not (= (length sorted-sections) 0))(check-id-n-rt-line id-line name-line rail-type))                           
+        (if (and (equal? (get-type-station(second (last sorted-sections))) t)
+                 (equal? (get-type-station(first (first sorted-sections))) t)
+                 (not(equal?(second (last sorted-sections))(first (first sorted-sections)))))
+                 (if (check-ids-line-consistency (get-ids-station sorted-sections))
+                     (list id-line name-line rail-type sorted-sections)
+                     undefined-line)
+             (if (and (equal? (second (last sorted-sections)) (first (first sorted-sections))) (and (not (equal? (get-type-station(second (last sorted-sections))) t )) (not (equal? (get-type-station(first (first sorted-sections))) t ))))  ;circular 
+                     (if(check-ids-line-consistency (cdr(get-ids-station sorted-sections)))
+                        (list id-line name-line rail-type sorted-sections)
+                        undefined-line)
+                     undefined-line))
+                 undefined-line)))
 
 ;PERTENENCIA
 
@@ -304,13 +336,71 @@
   (if (and (line? line) (section? section))
       (if (not(equal-sections? section (last(line))))
           (if (and (equal? (get-point2-section section) (get-point1-section (car (last line)))) (equal? (get-type (get-point1-section section) t)))
-              
-              |#
-            
-          
+             
+     --------------         
+|#
+
+
       
-     
+      
+  
+
+(define salto "---------")
+(sort-sections (list (section (station 04 "mdelta" c 23) (station 05 "mepsilon" r 23) 410 36)
+(section (station 02 "mbeta" r 23) (station 03 "mgamma" m 23) 310 31)
+(section (station 06 "mzeta" r 23) (station 07 "meta" t 23) 610 46)
+(section (station 03 "mgamma" m 23) (station 04 "mdelta" c 23) 410 36)
+(section (station 05 "mepsilon" r 23) (station 06 "mzeta" r 23) 510 41)
+(section (station 01 "malpha" t 23) (station 02 "mbeta" r 23) 210 26)))
+
+salto
+salto
+salto
+ 
+(sort-sections (list (section (station 06 "msixth" r 23) (station 01 "mstart" t 23) 700 50)
+(section (station 05 "mfifth" r 23) (station 06 "msixth" r 23) 600 45)
+(section (station 04 "mfourth" c 23) (station 05 "mfifth" r 23) 500 40)
+(section (station 03 "mthird" m 23) (station 04 "mfourth" c 23) 400 35)
+(section (station 02 "msecond" r 23) (station 03 "mthird" m 23) 300 30)
+(section (station 01 "mstart" t 23) (station 02 "msecond" r 23) 200 25)
+))
+
+salto
+salto
+salto
+ 
+(sort-sections (list (section (station 03 "mthird" m 23) (station 04 "mfourth" c 23) 400 35)
+(section (station 06 "msixth" r 23) (station 01 "mstart" t 23) 700 50)
+(section (station 02 "msecond" r 23) (station 03 "mthird" m 23) 300 30)
+(section (station 01 "mstart" t 23) (station 02 "msecond" r 23) 200 25)
+(section (station 05 "mfifth" r 23) (station 06 "msixth" r 23) 600 45)
+))
+
+salto
+salto
+salto
+
+(line 01 "linea1" "noc" (section (station 04 "mdelta" c 23) (station 05 "mepsilon" r 23) 410 36)
+(section (station 02 "mbeta" r 23) (station 03 "mgamma" m 23) 310 31)
+(section (station 06 "mzeta" r 23) (station 07 "meta" t 23) 610 46)
+(section (station 03 "mgamma" m 23) (station 04 "mdelta" c 23) 410 36)
+(section (station 05 "mepsilon" r 23) (station 06 "mzeta" r 23) 510 41)
+(section (station 01 "malpha" t 23) (station 02 "mbeta" r 23) 210 26)
+)
+salto
+salto
+salto
+
+(sort-sections (list (section (station 04 "mthird" t 23) (station 03 "mfourth" t 23) 400 35) (section (station 05 "lol" t 23) (station 06 "ñp" t 23) 400 35)))
+
+(line 02 "linea4" "lol" (section (station 04 "mthird" t 23) (station 03 "mfourth" t 23) 400 35) (section (station 05 "lol" t 23) (station 06 "ñp" t 23) 400 35))
 
 
+
+
+
+
+
+ 
 
 

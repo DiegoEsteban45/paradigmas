@@ -115,30 +115,20 @@
 (define (estaa? element L1)
   (if(member element L1) #t #f))
 
-(define (es_mayor_que_10_y_par? num1 num2)
-  (< num1 num2))
+(define (get-ids-station2 . sections-line) ; dominio secciones-que componen una linea, recorrido ids de las estaciones que componen la linea. 
+  (define (get-ids-station-envolotorio sections-line)
+  (if (< 1 (length sections-line)) 
+      (cons (get-id-station (get-section-point1 (first sections-line)))
+            (get-ids-station-envolotorio (cdr sections-line)))
+      (cons (first (get-section-point1 (first sections-line)))
+            (cons (get-id-station (get-section-point2 (first sections-line))) '()))))
+  (get-ids-station-envolotorio sections-line))
 
- (filter (lambda (x) (es_mayor_que_10_y_par? x 1)) (list 1 2 3 4 5 6 7 8 9 10 12 123 123))
 
 
-(define (divide a b)
-  (if (= b 0)
-      (error "División por cero no está permitida")
-      (/ a b)))
 
-(define (mi-funcion-divide a b)
-  (with-handlers
-      [(exn:fail? (lambda (exn)
-                    (display "Ocurrió un error: ")
-                    (display (exn-message exn))
-                    (newline)))]
-    (let ([resultado (divide a b)])
-      (display "El resultado es: ")
-      (display resultado))))
 
-(mi-funcion-divide 1 2 )
 
-(mi-funcion-divide 1 0 )
 
 
 
