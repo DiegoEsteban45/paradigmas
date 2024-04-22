@@ -108,12 +108,11 @@
       (get-sort-sections sections (car ( filter check-start-terminal sections))) ;retorno las secciones ordenadas de una linea t-t
       (get-sort-sections sections (search-start-circular sections))))               ;retorno las secciones oredenadas de una linea circular
 ;------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-(define (get-ids-stations-line sections-line) ;dominio, los tramos que componen una linea en formato de lista     
-  (if (< 1 (length sections-line))              
-      (cons (get-id-station (get-section-point1 (first sections-line)))
-            (get-ids-stations-line (cdr sections-line)))
-      (cons (first (get-section-point1 (first sections-line)))
-            (cons (get-id-station (get-section-point2 (first sections-line))) '()))))
+
+(define (get-ids-stations-line sections-line)
+  (define (get-id-p2 section)
+    (get-id-station(get-section-point2 section)))
+  (cons(get-id-station(get-section-point1(first sections-line)))(map get-id-p2 sections-line )))
 
 (define (check-ids-line-consistency list-ids)
   (define (check-ids id list-ids)
@@ -210,6 +209,9 @@
 
 (define (get-sections-line line)
   (fourth line))
+
+(define( get-id-line line)
+  (first line)) 
 
 ;MODIFICADORES OTRAS-FUNCIONES
 
@@ -456,29 +458,243 @@
       (list id-driver name-driver train-maker)
       undefined-driver))
 
+;SELECTOR
+
+(define (get-id-driver driver)
+    (first driver))
 
 ;TDA SUBWAY
 
 (define undefined-subway (list -1 "undefine name subway"))
 
 (define (subway id-subway name-subway)
-       (if(and (integer? id-subway)(<= 0 id-subway)(string? name-subway))
+      (if(and (integer? id-subway)(<= 0 id-subway)(string? name-subway))
        (list id-subway name-subway null null null)
        undefined-subway))
 
 ;TDA SUBWAY MODIFICADOR
 
-(define (subway-add-train subway . trains)
-  ())
-
-
+(define (subway-add-train subway . trains) 
+  (define (check-ids-train-consistency list-id-trains)
+    (define (check-ids id list-id-trains)
+      (if (not (empty? list-id-trains))
+          (if (and (not (empty? (filter (lambda (y) (equal? id y)) list-id-trains))) (<= 0 id))
+              #f
+              (check-ids (car list-id-trains) (cdr list-id-trains)))
+          #t))
+    (if (> 0 (car list-id-trains))
+        #f
+        (check-ids (car list-id-trains) (cdr list-id-trains)))) 
+  (if (empty? (get-subway-train subway))
+    (if(check-ids-train-consistency (map get-id-train trains))
+        (list (get-subway-id subway)(get-subway-name subway) trains (get-subway-line subway)(get-subway-driver subway))
+        (error 'subway-add-train "Repeated trains are being added"))
+    (if(check-ids-train-consistency (append (map get-id-train trains)(map get-id-train (get-subway-train subway))))
+        (list (get-subway-id subway)(get-subway-name subway) (append (get-subway-train subway) trains)(get-subway-line subway)(get-subway-driver subway))
+        (list (get-subway-id subway)(get-subway-name subway) (get-subway-train subway) (get-subway-line subway)(get-subway-driver subway)))))
+ ;---------------------------------------------------------------------------
+(define (subway-add-line subway . lines)
+  
+    (define (condition-to-filter-station-c Section)
+      (not(or(equal?(get-type-station(get-section-point1 Section))c) 
+             (equal?(get-type-station(get-section-point2 Section))c))))
+  
+    (define (filter-station-type-c sections-line)
+      (filter condition-to-filter-station-c sections-line))
+    (define (check-duplicates-id-lines lines)
+      (if(check-duplicates (map get-id-line lines))
+        #t #f))
+  
+    (define (check-duplicates-stations-in-line lines)
+     (if (check-duplicates(append*(map remove-duplicates
+         (map get-ids-stations-line(map filter-station-type-c 
+         (map get-sections-line lines))))))
+         #t #f))
+  
+   (if (empty? (get-subway-line subway))
+       (if (nor (check-duplicates-id-lines lines) (check-duplicates-stations-in-line lines))
+           (list (get-subway-id subway) (get-subway-name subway) (get-subway-train subway) lines (get-subway-driver subway))
+           (error 'subway-add-line "Repeated stations or lines"))
+       (if (nor (check-duplicates-id-lines (append lines (get-subway-line subway)))(check-duplicates-stations-in-line (append lines (get-subway-line subway))))
+           (list (get-subway-id subway) (get-subway-name subway) (get-subway-train subway) (append (get-subway-line subway) lines) (get-subway-driver subway))
+           (error 'subway-add-line "Repeated stations or lines"))))
+;-------------------------------------------------------------------------
+(define (subway-add-driver subway . drivers)
+  (if (empty? (get-subway-driver subway))
+      (if (not(check-duplicates(map get-id-driver drivers)))
+        (list (get-subway-id subway) (get-subway-name subway) (get-subway-train subway) (get-subway-line subway) drivers)
+        (error 'subway-add-driver "Repeated drivers"))
+      (if (not(check-duplicates (map get-id-driver (append drivers (get-subway-driver subway)))))
+        (list (get-subway-id subway) (get-subway-name subway) (get-subway-train subway) (get-subway-line subway) (append (get-subway-driver subway) drivers))
+        (error 'subway-add-driver "Repeated drivers"))))
+      
 ;SELECTORES
 
-(define subway)
+(define (get-subway-id subway)
+  (first subway))
+
+(define (get-subway-name subway)
+  (second subway))
+
+(define (get-subway-train subway)
+  (third subway))
+
+(define (get-subway-line subway)
+  (fourth subway))
+
+(define (get-subway-driver subway)
+  (fifth subway))
 
 
 
 
+(define salto "---------")
+(define e0 (station 0 "San Pablo" t 90))
+(define e1 (station 1 "Neptuno" r 45))
+(define e2 (station 2 "Pajaritos" c 45))
+(define e3 (station 3 "Las Rejas" r 45))
+(define e4 (station 4 "Ecuador" r 60))
+(define e5 (station 5 "San Alberto Hurtado" r 40))
+(define e6 (station 6 "Universidad de Santiago de Chile" c 40))
+(define e7 (station 7 "Estación Central" c 45))
+(define e8 (station 8 "Unión Latinoamericana" r 30))
+(define e9 (station 9 "República" r 40))
+(define e10 (station 10 "Los Héroes" c 60))
+(define e11 (station 11 "La Moneda" r 40))
+(define e12 (station 12 "Universidad de Chile" c 90))
+(define e13 (station 13 "Santa Lucía" r 40))
+(define e14 (station 14 "Universidad Católica" c 60))
+(define e15 (station 15 "Baquedano" r 40))
+(define e16 (station 16 "Los Dominicos" t 90))
+(define e17 (station 17 "Cochera Neptuno" m 3600))
+(define e18 (station 18 "El Llano" r 60))
+(define e19 (station 19 "Franklin" r 50))
+(define e20 (station 20 "Rondizzoni" r 55))
+(define e21 (station 21 "Parque O'Higgins" r 65))
+(define e22 (station 22 "Toesca" r 65))
+(define e23 (station 23 "Santa Ana" r 65))
+(define e24 (station 24 "Puente Cal y Canto" r 65))
+(define e25 (station 25 "mantencion parqueO" m 65))
+
+
+;tramos l1
+(define s0 (section e0 e1 4 15))
+(define s1 (section e1 e2 3 14))
+(define s2 (section e2 e3 2.5 10))
+(define s3 (section e3 e4 4.5 17))
+(define s4 (section e4 e5 4.7 18))
+(define s5 (section e5 e6 4.3 17))
+(define s6 (section e6 e7 3.8 12))
+(define s7 (section e7 e8 2.5 10))
+(define s8 (section e8 e9 4.5 17))
+(define s9 (section e9 e10 4.7 18))
+(define s10 (section e10 e11 4.3 17))
+(define s11 (section  e11 e12 3.8 12))
+(define s12 (section e12 e13 4.5 17))
+(define s13 (section e13 e14 4.7 18))
+(define s14 (section e14 e15 4.3 17))
+(define s15 (section e15 e16 4.2 17))
+(define s16 (section e1 e17 3.8 12))
+
+;tramos l2
+(define s17 (section e18 e19 4 15))
+(define s18 (section e19 e20 3 12))
+(define s19 (section e20 e21 5 18))
+(define s20 (section e21 e22 4.5 16))
+(define s21 (section e22 e10 4.2 16))
+(define s22 (section e10 e23 4.2 16))
+(define s23 (section e23 e24 4.2 16))
+(define s24 (section e24 e18 28 90))
+(define s25 (section e21 e25 28 78))
+
+(define l1 (line 1 "Línea 1" "UIC 60 ASCE" s0 s1 s3 s2 s4 s5 s6 s7 s8 s9 s10 s11 s12 s13 s14 s15 s16))
+
+(define l2 (line 2 "Línea 2" "100 R.E."))
+
+
+(define l2a (line-add-section l2 s17))
+(define l2b (line-add-section l2a s18))
+(define l2c (line-add-section l2b s19))
+(define l2d (line-add-section l2c s20))
+(define l2e (line-add-section l2d s21))
+(define l2f (line-add-section l2e s22))
+(define l2g (line-add-section l2f s23))
+(define l2h (line-add-section l2g s24))
+(define l2i (line-add-section l2h s19))
+(define l2j (line-add-section l2h s25))
+
+
+;creando carros
+(define pc0 (pcar 0 100 "NS-74" tr))
+(define pc1 (pcar 1 100 "NS-74" ct))
+(define pc2 (pcar 2 150 "NS-74" ct))
+(define pc3 (pcar 3 100 "NS-74" ct))
+(define pc4 (pcar 4 100 "NS-74" tr))
+(define pc5 (pcar 5 100 "AS-2014" tr))
+(define pc6 (pcar 6 100 "AS-2014" ct))
+(define pc7 (pcar 7 100 "AS-2014" ct))
+(define pc8 (pcar 8 100 "AS-2014" ct))
+(define pc9 (pcar 9 100 "AS-2014" tr))
+(define pc10 (pcar 10 100 "AS-2014" tr))
+(define pc11a (pcar 11 100 "AS-2016" tr))
+(define pc11 (pcar 12 100 "AS-2016" ct))
+(define pc12 (pcar 13 100 "AS-2016" ct))
+(define pc13 (pcar 14 150 "AS-2016" ct))
+(define pc14 (pcar 15 100 "AS-2016" ct))
+(define pc15 (pcar 16 100 "AS-2016" ct))
+(define pc16 (pcar 17 100 "AS-2016" ct))
+(define pc17 (pcar 18 100 "AS-2016" tr))
+
+;creando trenes
+(define t0 (train 0 "CAF" "UIC 60 ASCE" 60 1.5)) ;tren sin carros definidos
+(define t1 (train 1 "CAF" "UIC 60 ASCE" 70  2 pc0 pc1 pc2 pc3 pc4)) ;tren válido
+(define t2 (train 2 "CAF" "100 R.E." 70  2 pc5 pc6 pc7 pc8 pc9)) ;tren válido
+
+(define t0a (train-add-car t0 pc5 0))
+(define t0b (train-add-car t0a pc6 1))
+(define t0c (train-add-car t0b pc7 2))
+(define t0d (train-add-car t0c pc8 3))
+(define t0e (train-add-car t0d pc9 4)) ;tren válido
+
+
+(define d0 (driver 0 "Juan" "CAF"))
+(define d1 (driver 1 "Alejandro" "Alsthom"))
+(define d2 (driver 2 "Diego" "Alsthom"))
+(define d3 (driver 3 "Pedro" "CAF"))
+(define d4 (driver 4 "Nicolas" "CAF"))
+
+;Creando Metros
+(define sw0 (subway 0 "Metro de Santiago"))
+(define sw1 (subway 1 "Subte"))
+
+;Agregando trenes
+(define sw0a (subway-add-train sw0 t1 t2 t0e))
+
+; Estaciones
+(define eA (station 34 "Estación A" t 90))
+(define eB (station 35 "Estación B" c 60))
+(define eC (station 36 "Estación C" r 50))
+(define eD (station 37 "Estación D" t 90))
+(define eAM (station 38 "Mantenimiento A" m 3600))
+
+; Tramos de la línea
+(define sAB (section eA eB 4 15))
+(define sBC (section eB eC 3 14))
+(define sCD (section eC eD 2.5 10))
+(define sAD (section eA eAM 1 5))
+
+; Creación de la línea
+(define l3 (line 3 "Línea 3" "UIC 60 ASCE" sAB sBC sCD sAD))
+
+;Agregando lineas
+(define sw0b (subway-add-line sw0a l1 l2h))
+sw0b
+salto
+;Agregando drivers
+(define sw0c (subway-add-driver sw0b d0 d1 d2 d3))
+sw0c
+(define sw0d (subway-add-driver sw0c d4))
+sw0d
 
       
 
